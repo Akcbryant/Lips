@@ -26,7 +26,7 @@ void add_history(char* unused) {}
 
 #include <editline/readline.h>
 
-/* Must be compiles with gcc -lreadline */
+/* Must be compiled with gcc -lreadline */
 
 #endif
 
@@ -41,8 +41,8 @@ mpc_parser_t* Lispy    = mpc_new("lispy");
 /* Define them with the following Language */
 mpca_lang(MPCA_LANG_DEFAULT,
   "                                                                                            \
-    number   : /-?[0-9]+/ ;                                                                    \
-    operator : '+' | '-' | '*' | '/' | '%' | "add" | "sub" | "mul" | "div" | "mod";            \
+    number   : /-?[0-9]+\\.?[0-9]*/ ;                                                                    \
+    operator : '+' | '-' | '*' | '/' | '%' | /add/ | /sub/ | /mul/ | /div/ | /mod/ ;           \
     expr     : <number> | '(' <operator> <expr>+ ')' ;                                         \
     lispy    : /^/ <operator> <expr>+ /$/ ;                                                    \
   ",
