@@ -1,11 +1,3 @@
-/*
-
-COMPILE WITH THIS:
-    cc -std=c99 -Wall evaluation.c mpc.c -ledit -lm -o evaluation
-
-
-*/
-
 #include "mpc.h"
 
 #ifdef _WIN32
@@ -79,11 +71,12 @@ int number_of_leaves(mpc_ast_t* t) {
 
 /* Recursive function that computes the number of branches in the tree */
 int number_of_branches(mpc_ast_t* t) {
-  if (t->children_num == 0 ) { return 0; }
+  if (t->children_num == 0) { return 0; }
   if (t->children_num >= 1) {
     int total = 0;
+    total++;
     for (int i = 0; i < t->children_num; i++) {
-      return total + number_of_branches(t->children[i]);
+      total = total + number_of_branches(t->children[i]);
     }
     return total;
   }
