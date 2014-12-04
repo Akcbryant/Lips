@@ -24,12 +24,23 @@ void add_history(char* unused) {}
 
 #endif
 
+// take x to the y
+int power_of(long x, long y) {
+  int total = 1;
+  for (int i = 0; i < y ; i++ ) {
+    total = total * x;
+  }
+  return total;
+}
+
 /* Use operator string to see which operation to perform */
 long eval_op(long x, char* op, long y) {
   if (strcmp(op, "+") == 0) { return x + y; }
   if (strcmp(op, "-") == 0) { return x - y; }
   if (strcmp(op, "*") == 0) { return x * y; }
   if (strcmp(op, "/") == 0) { return x / y; }
+  if (strcmp(op, "%") == 0) { return x - (y * (x / y)); }
+  if (strcmp(op, "^") == 0) { return power_of(x, y); }
   return 0;
 }
 
@@ -83,6 +94,20 @@ int number_of_branches(mpc_ast_t* t) {
   return 0;
 }
 
+int is_expr(mpc_ast_t* t) {
+  mpc_ast_t** children = t->children;
+  //This grabs the first example of expr|number|regex to test against expr in + 3 3
+  if (strstr(children[2]->tag, "expr") != 0) { return 1; }
+  else { return 0; }
+}
+
+int is_paren(mpc_ast_t* t) {
+  mpc_ast_t** children = t->children;
+  printf("%s\n", children[4]->contents);
+  if (strcmp(children[4]->contents, "(") == 0 || strcmp(children[4]->contents, ")") == 0) { return 1; }
+  else { return 0; }
+}
+
 int main(int argc, char** argv) {
   
   mpc_parser_t* Number = mpc_new("number");
@@ -93,7 +118,7 @@ int main(int argc, char** argv) {
   mpca_lang(MPCA_LANG_DEFAULT,
     "                                                     \
       number   : /-?[0-9]+/ ;                             \
-      operator : '+' | '-' | '*' | '/' ;                  \
+      operator : '+' | '-' | '*' | '/' | '%' | '^' ;      \
       expr     : <number> | '(' <operator> <expr>+ ')' ;  \
       lispy    : /^/ <operator> <expr>+ /$/ ;             \
     ",
@@ -124,6 +149,14 @@ int main(int argc, char** argv) {
       // show the number of branches
       int branches = number_of_branches(r.output);
       printf("You have %d branches\n", branches);
+
+      // show if node is tagged as an 'expr', tested on + 3 3
+      //int node = is_expr(r.output);
+      //printf("Node is expr if this number is 1: %d\n", node);
+
+      // show if a node's contents is a paren, test on + 3 ( + 3 3 )
+      //int node = is_paren(r.output);
+      //printf("Node is either ')' or '(' if this is 1: %d\n", node);
 
       mpc_ast_delete(r.output);
       
