@@ -111,6 +111,7 @@ int is_paren(mpc_ast_t* t) {
 int main(int argc, char** argv) {
   
   mpc_parser_t* Number = mpc_new("number");
+  mpc_parser_t* Function = mpc_new("function");
   mpc_parser_t* Operator = mpc_new("operator");
   mpc_parser_t* Expr = mpc_new("expr");
   mpc_parser_t* Lispy = mpc_new("lispy");
@@ -118,7 +119,8 @@ int main(int argc, char** argv) {
   mpca_lang(MPCA_LANG_DEFAULT,
     "                                                     \
       number   : /-?[0-9]+/ ;                             \
-      operator : '+' | '-' | '*' | '/' | '%' | '^' ;      \
+      function : 'min' <number>+ | 'max' <number>+        \
+      operator : '+' | '-' | '*' | '/' | '%' | '^' | <function>;    \
       expr     : <number> | '(' <operator> <expr>+ ')' ;  \
       lispy    : /^/ <operator> <expr>+ /$/ ;             \
     ",
@@ -169,7 +171,7 @@ int main(int argc, char** argv) {
     
   }
   
-  mpc_cleanup(4, Number, Operator, Expr, Lispy);
+  mpc_cleanup(4, Number, Function, Operator, Expr, Lispy);
   
   return 0;
 }
