@@ -20,7 +20,7 @@ void add_history(char* unused) {}
 
 #include <editline/readline.h>
 
-/* Must be compiled with gcc -lreadline */
+/* Must be compiled with cc -std=c99 -Wall evaluation.c mpc.c -ledit -lm -o evaluation */
 
 #endif
 
@@ -63,8 +63,7 @@ long eval(mpc_ast_t* t) {
     x = eval_op(x, op, eval(t->children[i]));
     i++;
   }
-  
-  return x;  
+  return x;
 }
 
 /* Recursive function that computes the number of leaves in the tree */
@@ -119,12 +118,12 @@ int main(int argc, char** argv) {
   mpca_lang(MPCA_LANG_DEFAULT,
     "                                                     \
       number   : /-?[0-9]+/ ;                             \
-      function : 'min' <number>+ | 'max' <number>+        \
-      operator : '+' | '-' | '*' | '/' | '%' | '^' | <function>;    \
+      function : /min/ | /max/ ;                          \
+      operator : '+' | '-' | '*' | '/' | '%' | '^' | <function>;      \
       expr     : <number> | '(' <operator> <expr>+ ')' ;  \
       lispy    : /^/ <operator> <expr>+ /$/ ;             \
     ",
-    Number, Operator, Expr, Lispy);
+    Number, Function, Operator, Expr, Lispy);
   
   puts("Lispy Version 0.0.0.0.3");
   puts("Press Ctrl+c to Exit\n");
@@ -171,7 +170,7 @@ int main(int argc, char** argv) {
     
   }
   
-  mpc_cleanup(4, Number, Function, Operator, Expr, Lispy);
+  mpc_cleanup(5, Number, Function, Operator, Expr, Lispy);
   
   return 0;
 }
