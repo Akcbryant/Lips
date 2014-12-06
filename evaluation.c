@@ -41,11 +41,13 @@ long eval_op(long x, char* op, long y) {
   if (strcmp(op, "/") == 0) { return x / y; }
   if (strcmp(op, "%") == 0) { return x - (y * (x / y)); }
   if (strcmp(op, "^") == 0) { return power_of(x, y); }
+  if (strcmp(op, "min") == 0) { if (x > y) { return y; } else {return x; }}
+  if (strcmp(op, "max") == 0) { if (x < y) { return y; } else {return x; }}
   return 0;
 }
 
 long eval(mpc_ast_t* t) {
-  
+
   /* If tagged as number return it directly. */ 
   if (strstr(t->tag, "number")) {
     return atoi(t->contents);
@@ -56,6 +58,8 @@ long eval(mpc_ast_t* t) {
   
   /* We store the third child in `x` */
   long x = eval(t->children[2]);
+
+  
   
   /* Iterate the remaining children and combining. */
   int i = 3;
@@ -116,12 +120,12 @@ int main(int argc, char** argv) {
   mpc_parser_t* Lispy = mpc_new("lispy");
   
   mpca_lang(MPCA_LANG_DEFAULT,
-    "                                                     \
-      number   : /-?[0-9]+/ ;                             \
-      function : /min/ | /max/ ;                          \
-      operator : '+' | '-' | '*' | '/' | '%' | '^' | <function>;      \
+    "                                                                                       \
+      number   : /-?[0-9]+/ ;                                                               \
+      function : /min/ | /max/ ;                                        \
+      operator : '+' | '-' | '*' | '/' | '%' | '^' | <function> ;                           \
       expr     : <number> | '(' <operator> <expr>+ ')' ;  \
-      lispy    : /^/ <operator> <expr>+ /$/ ;             \
+      lispy    : /^/ <operator> <expr>+ /$/ ;                                               \
     ",
     Number, Function, Operator, Expr, Lispy);
   
