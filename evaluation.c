@@ -67,6 +67,10 @@ long eval(mpc_ast_t* t) {
     x = eval_op(x, op, eval(t->children[i]));
     i++;
   }
+
+  // If the negative sign has only one argument this will be called.
+  if (strcmp(t->children[1]->contents, "-") == 0) { return -x; }
+
   return x;
 }
 
