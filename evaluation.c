@@ -24,6 +24,60 @@ void add_history(char* unused) {}
 
 #endif
 
+/* Create Enumeration of Possible Error Types */
+enum { LERR_DIV_ZERO, LERR_BAD_OP, LERR_BAD_NUM };
+
+/* Create Enumeration of Possible lval Types */
+enum { LVAL_NUM, LVAL_ERR };
+
+/* Declare New lval Struct */
+typedef struct {
+  int type;
+  long num;
+  int err;
+} lval;
+
+/* Create a new number type lval */
+lval lval_num(long x) {
+  lval v;
+  v.type = LVAL_NUM;
+  v.num = x;
+  return v;
+}
+
+/* Create a new error type lval */
+lval lval_err(int x) {
+  lval v;
+  v.type = LVAL_ERR;
+  v.err = x;
+  return v;
+}
+
+void lval_print(lval v) {
+  switch (v.type) {
+    /* In the case the type is a number print it */
+    /* Then 'break' out of the switch. */
+    case LVAL_NUM: printf("%li", v.num); break;
+    
+    /* In the case the type is an error */
+    case LVAL_ERR:
+      /* Check what type of error it is and print it */
+      if (v.err == LERR_DIV_ZERO) {
+        printf("Error: Division By Zero!");
+      }
+      if (v.err == LERR_BAD_OP)   {
+        printf("Error: Invalid Operator!");
+      }
+      if (v.err == LERR_BAD_NUM)  {
+        printf("Error: Invalid Number!");
+      }
+    break;
+  }
+}
+
+/* Print an "lval" followed by a newline */
+void lval_println(lval v) { lval_print(v); putchar('\n'); }
+
 // take x to the y
 int power_of(long x, long y) {
   int total = 1;
@@ -33,35 +87,46 @@ int power_of(long x, long y) {
   return total;
 }
 
-/* Use operator string to see which operation to perform */
-long eval_op(long x, char* op, long y) {
-  if (strcmp(op, "+") == 0) { return x + y; }
-  if (strcmp(op, "-") == 0) { return x - y; }
-  if (strcmp(op, "*") == 0) { return x * y; }
-  if (strcmp(op, "/") == 0) { return x / y; }
-  if (strcmp(op, "%") == 0) { return x - (y * (x / y)); }
-  if (strcmp(op, "^") == 0) { return power_of(x, y); }
-  if (strcmp(op, "min") == 0) { if (x > y) { return y; } else {return x; }}
-  if (strcmp(op, "max") == 0) { if (x < y) { return y; } else {return x; }}
-  return 0;
+lval eval_op(lval x, char* op, lval y) {
+  
+  /* If either value is an error return it */
+  if (x.type == LVAL_ERR) { return x; }
+  if (y.type == LVAL_ERR) { return y; }
+
+  /* Otherwise do maths on the number values */
+  if (strcmp(op, "+") == 0) { return lval_num(x.num + y.num); }
+  if (strcmp(op, "-") == 0) { return lval_num(x.num - y.num); }
+  if (strcmp(op, "*") == 0) { return lval_num(x.num * y.num); }
+  if (strcmp(op, "/") == 0) {
+    /* If second operand is zero return error */
+    return y.num == 0 
+      ? lval_err(LERR_DIV_ZERO) 
+      : lval_num(x.num / y.num);
+  }
+  if (strcmp(op, "%") == 0) { 
+    return y.num == 0 
+      ? lval_err(LERR_DIV_ZERO) 
+      : lval_num(x.num - (y.num * (x.num / y.num))); }
+  if (strcmp(op, "^") == 0) { return lval_num(power_of(x.num, y.num)); }
+  if (strcmp(op, "min") == 0) { if (x.num > y.num) { return lval_num(y.num); } else {return lval_num(x.num); }}
+  if (strcmp(op, "max") == 0) { if (x.num < y.num) { return lval_num(y.num); } else {return lval_num(x.num); }}
+
+  return lval_err(LERR_BAD_OP);
 }
 
-long eval(mpc_ast_t* t) {
-
-  /* If tagged as number return it directly. */ 
+lval eval(mpc_ast_t* t) {
+  
   if (strstr(t->tag, "number")) {
-    return atoi(t->contents);
+    /* Check if there is some error in conversion */
+    errno = 0;
+    long x = strtol(t->contents, NULL, 10);
+    return errno != ERANGE ? lval_num(x) : lval_err(LERR_BAD_NUM);
   }
   
-  /* The operator is always second child. */
-  char* op = t->children[1]->contents;
-  
-  /* We store the third child in `x` */
-  long x = eval(t->children[2]);
+  char* op = t->children[1]->contents;  
+  lval x = eval(t->children[2]);
 
-  
-  
-  /* Iterate the remaining children and combining. */
+  /* Iterate the remaining children and combine. */
   int i = 3;
   while (strstr(t->children[i]->tag, "expr")) {
     x = eval_op(x, op, eval(t->children[i]));
@@ -69,9 +134,9 @@ long eval(mpc_ast_t* t) {
   }
 
   // If the negative sign has only one argument this will be called.
-  if (strcmp(t->children[1]->contents, "-") == 0) { return -x; }
+  if (strcmp(t->children[1]->contents, "-") == 0) { return lval_num(-x.num); }
 
-  return x;
+  return lval_num(x.num);
 }
 
 /* Recursive function that computes the number of leaves in the tree */
@@ -133,7 +198,7 @@ int main(int argc, char** argv) {
     ",
     Number, Function, Operator, Expr, Lispy);
   
-  puts("Lispy Version 0.0.0.0.3");
+  puts("Lispy Version 0.0.0.0.4");
   puts("Press Ctrl+c to Exit\n");
   
   while (1) {
@@ -144,20 +209,20 @@ int main(int argc, char** argv) {
     mpc_result_t r;
 
     if (mpc_parse("<stdin>", input, Lispy, &r)) {
-      
-      long result = eval(r.output);
-      printf("%li\n", result);
+
+      lval result = eval(r.output);
+      lval_println(result);
 
       // show the AST for debug purposes
-      mpc_ast_print(r.output);
+      //mpc_ast_print(r.output);
 
       // show the number of leaves
-      int leaves = number_of_leaves(r.output);
-      printf("You have %d leaves\n", leaves);
+      //int leaves = number_of_leaves(r.output);
+      //printf("You have %d leaves\n", leaves);
 
       // show the number of branches
-      int branches = number_of_branches(r.output);
-      printf("You have %d branches\n", branches);
+      //int branches = number_of_branches(r.output);
+      //printf("You have %d branches\n", branches);
 
       // show if node is tagged as an 'expr', tested on + 3 3
       //int node = is_expr(r.output);
