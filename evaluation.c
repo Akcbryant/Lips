@@ -1,3 +1,10 @@
+
+/* debug notes: the function lval_err is being called properly but the
+   case is always a number which means that lval_print is never called
+   with the error as it's argument
+*/
+
+
 #include "mpc.h"
 
 #ifdef _WIN32
@@ -25,10 +32,10 @@ void add_history(char* unused) {}
 #endif
 
 /* Create Enumeration of Possible Error Types */
-enum { LERR_DIV_ZERO, LERR_BAD_OP, LERR_BAD_NUM };
+enum { LERR_DIV_ZERO , LERR_BAD_OP , LERR_BAD_NUM };
 
 /* Create Enumeration of Possible lval Types */
-enum { LVAL_NUM, LVAL_ERR };
+enum { LVAL_NUM , LVAL_ERR };
 
 /* Declare New lval Struct */
 typedef struct {
@@ -53,12 +60,13 @@ lval lval_err(int x) {
   return v;
 }
 
+/* Print an "lval" */
 void lval_print(lval v) {
   switch (v.type) {
     /* In the case the type is a number print it */
     /* Then 'break' out of the switch. */
     case LVAL_NUM: printf("%li", v.num); break;
-    
+
     /* In the case the type is an error */
     case LVAL_ERR:
       /* Check what type of error it is and print it */
@@ -105,11 +113,12 @@ lval eval_op(lval x, char* op, lval y) {
   }
   if (strcmp(op, "%") == 0) { 
     return y.num == 0 
+    /* If second operand is zero return error */
       ? lval_err(LERR_DIV_ZERO) 
       : lval_num(x.num - (y.num * (x.num / y.num))); }
   if (strcmp(op, "^") == 0) { return lval_num(power_of(x.num, y.num)); }
-  if (strcmp(op, "min") == 0) { if (x.num > y.num) { return lval_num(y.num); } else {return lval_num(x.num); }}
-  if (strcmp(op, "max") == 0) { if (x.num < y.num) { return lval_num(y.num); } else {return lval_num(x.num); }}
+  if (strcmp(op, "min") == 0) { if (x.num > y.num) { return lval_num(y.num); } else { return lval_num(x.num); }}
+  if (strcmp(op, "max") == 0) { if (x.num < y.num) { return lval_num(y.num); } else { return lval_num(x.num); }}
 
   return lval_err(LERR_BAD_OP);
 }
@@ -131,12 +140,13 @@ lval eval(mpc_ast_t* t) {
   while (strstr(t->children[i]->tag, "expr")) {
     x = eval_op(x, op, eval(t->children[i]));
     i++;
+
   }
 
   // If the negative sign has only one argument this will be called.
   if (strcmp(t->children[1]->contents, "-") == 0) { return lval_num(-x.num); }
 
-  return lval_num(x.num);
+  return x;
 }
 
 /* Recursive function that computes the number of leaves in the tree */
