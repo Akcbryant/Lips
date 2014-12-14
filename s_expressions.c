@@ -153,6 +153,9 @@ void lval_println(lval* v) { lval_print(v); putchar('\n'); }
 
 #define LASSERT(args, cond, err) \
   if (!(cond)) { lval_del(args); return lval_err(err); }
+
+#define LARGNUMASSERT(lvalPassed, argsRequired, err) \
+  if (lvalPassed->count != argsRequired) { lval_del(lvalPassed); return lval_err(err); }
   
 lval* lval_eval(lval* v);
 
@@ -162,8 +165,8 @@ lval* builtin_list(lval* a) {
 }
 
 lval* builtin_head(lval* a) {
-  LASSERT(a, a->count == 1,
-    "Function 'head' passed too many arguments.");
+  LARGNUMASSERT(a, 1,
+    "'head' requires one argument");
   LASSERT(a, a->cell[0]->type == LVAL_QEXPR,
     "Function 'head' passed incorrect type.");
   LASSERT(a, a->cell[0]->count != 0,
