@@ -154,8 +154,11 @@ void lval_println(lval* v) { lval_print(v); putchar('\n'); }
 #define LASSERT(args, cond, err) \
   if (!(cond)) { lval_del(args); return lval_err(err); }
 
-#define LARGNUMASSERT(lvalPassed, argsRequired, err) \
-  if (lvalPassed->count != argsRequired) { lval_del(lvalPassed); return lval_err(err); }
+#define LARGNUMASSERT(lvalPassed, argsRequired) \
+  if (lvalPassed->count != argsRequired) { lval_del(lvalPassed); return lval_err("Incorrect number of arguments"); }
+
+#define LEMPTYLISTASSERT(lvalPassed) \
+  if (lvalPassed->cell[0]->count == 0) { lval_del(lvalPassed); return lval_err("Function passed empty set {}"); }
   
 lval* lval_eval(lval* v);
 
@@ -165,12 +168,10 @@ lval* builtin_list(lval* a) {
 }
 
 lval* builtin_head(lval* a) {
-  LARGNUMASSERT(a, 1,
-    "'head' requires one argument");
+  LARGNUMASSERT(a, 1);
   LASSERT(a, a->cell[0]->type == LVAL_QEXPR,
     "Function 'head' passed incorrect type.");
-  LASSERT(a, a->cell[0]->count != 0,
-    "Function 'head' passed {}.");
+  LEMPTYLISTASSERT(a);
   
   lval* v = lval_take(a, 0);  
   while (v->count > 1) { lval_del(lval_pop(v, 1)); }
@@ -178,12 +179,10 @@ lval* builtin_head(lval* a) {
 }
 
 lval* builtin_tail(lval* a) {
-  LASSERT(a, a->count == 1,
-    "Function 'tail' passed too many arguments.");
+  LARGNUMASSERT(a, 1);
   LASSERT(a, a->cell[0]->type == LVAL_QEXPR,
     "Function 'tail' passed incorrect type.");
-  LASSERT(a, a->cell[0]->count != 0,
-    "Function 'tail' passed {}.");
+  LEMPTYLISTASSERT(a);
 
   lval* v = lval_take(a, 0);  
   lval_del(lval_pop(v, 0));
@@ -191,8 +190,7 @@ lval* builtin_tail(lval* a) {
 }
 
 lval* builtin_eval(lval* a) {
-  LASSERT(a, a->count == 1,
-    "Function 'eval' passed too many arguments.");
+  LARGNUMASSERT(a, 1);
   LASSERT(a, a->cell[0]->type == LVAL_QEXPR,
     "Function 'eval' passed incorrect type.");
   
@@ -216,6 +214,24 @@ lval* builtin_join(lval* a) {
   
   lval_del(a);
   return x;
+}
+
+lval* builtin_cons(lval* a) {
+  LARGNUMASSERT(a, 2);
+  LASSERT(a, a->cell[0]->type != LVAL_ERR, "Function 'cons' passed incorrect 1st argument type");
+  LASSERT(a, a->cell[0]->type != LVAL_SYM, "Function 'cons' passed incorrect 1st argument type");
+  LASSERT(a, a->cell[1]->type == LVAL_QEXPR, "Function 'cons' passed incorrect 2nd argument type");
+  LEMPTYLISTASSERT(a->cell[1]);
+
+  lval* y = a->cell[1];
+
+  while(a->cell[0]->count > 0) {
+    lval* x = lval_pop(a, 0);
+    y = lval_join(x, y);
+    //lval_del(x);
+  }
+
+  return y;
 }
 
 lval* builtin_op(lval* a, char* op) {
@@ -259,6 +275,7 @@ lval* builtin(lval* a, char* func) {
   if (strcmp("tail", func) == 0) { return builtin_tail(a); }
   if (strcmp("join", func) == 0) { return builtin_join(a); }
   if (strcmp("eval", func) == 0) { return builtin_eval(a); }
+  if (strcmp("cons", func) == 0) { return builtin_cons(a); }
   if (strstr("+-/*", func)) { return builtin_op(a, func); }
   lval_del(a);
   return lval_err("Unknown Function!");
@@ -333,14 +350,14 @@ int main(int argc, char** argv) {
   mpc_parser_t* Lispy  = mpc_new("lispy");
   
   mpca_lang(MPCA_LANG_DEFAULT,
-    "                                                    \
+    "                                                              \
       number : /-?[0-9]+\\.?[0-9]*/ ;                              \
-      symbol : \"list\" | \"head\" | \"tail\" | \"eval\" \
-             | \"join\" | '+' | '-' | '*' | '/' ;        \
-      sexpr  : '(' <expr>* ')' ;                         \
-      qexpr  : '{' <expr>* '}' ;                         \
-      expr   : <number> | <symbol> | <sexpr> | <qexpr> ; \
-      lispy  : /^/ <expr>* /$/ ;                         \
+      symbol : \"list\" | \"head\" | \"tail\" | \"eval\"           \
+             | \"join\" | \"cons\" | '+' | '-' | '*' | '/' ;         \
+      sexpr  : '(' <expr>* ')' ;                                   \
+      qexpr  : '{' <expr>* '}' ;                                   \
+      expr   : <number> | <symbol> | <sexpr> | <qexpr> ;           \
+      lispy  : /^/ <expr>* /$/ ;                                   \
     ",
     Number, Symbol, Sexpr, Qexpr, Expr, Lispy);
   
