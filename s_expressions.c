@@ -234,6 +234,19 @@ lval* builtin_cons(lval* a) {
   return y;
 }
 
+lval* builtin_len(lval* a) {
+  LASSERT(a, a->cell[0]->type == LVAL_QEXPR, "Function passed wrong type should be QEXPR");
+  return lval_num(a->cell[0]->count);
+}
+
+lval* builtin_init(lval* a) {
+  LASSERT(a, a->cell[0]->type == LVAL_QEXPR, "Function passed wrong type should be QEXPR");
+
+  lval_pop(a->cell[0], a->count + 1);
+
+  return a;
+}
+
 lval* builtin_op(lval* a, char* op) {
   
   for (int i = 0; i < a->count; i++) {
@@ -276,6 +289,8 @@ lval* builtin(lval* a, char* func) {
   if (strcmp("join", func) == 0) { return builtin_join(a); }
   if (strcmp("eval", func) == 0) { return builtin_eval(a); }
   if (strcmp("cons", func) == 0) { return builtin_cons(a); }
+  if (strcmp("len", func) == 0) {return builtin_len(a); }
+  if (strcmp("init", func) == 0) {return builtin_init(a); }
   if (strstr("+-/*", func)) { return builtin_op(a, func); }
   lval_del(a);
   return lval_err("Unknown Function!");
@@ -353,7 +368,7 @@ int main(int argc, char** argv) {
     "                                                              \
       number : /-?[0-9]+\\.?[0-9]*/ ;                              \
       symbol : \"list\" | \"head\" | \"tail\" | \"eval\"           \
-             | \"join\" | \"cons\" | '+' | '-' | '*' | '/' ;         \
+             | \"join\" | \"cons\" | \"len\" | \"init\" | '+' | '-' | '*' | '/' ;         \
       sexpr  : '(' <expr>* ')' ;                                   \
       qexpr  : '{' <expr>* '}' ;                                   \
       expr   : <number> | <symbol> | <sexpr> | <qexpr> ;           \
