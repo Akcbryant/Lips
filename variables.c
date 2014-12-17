@@ -372,8 +372,8 @@ lval* builtin_join(lenv* e, lval* a) {
   return x;
 }
 
-lval* builtin_op(lenv* e, lval* a, char* op) {
-  
+lval* builtin_op(lenv* e, lval* a, char* op) { 
+
   for (int i = 0; i < a->count; i++) {
     LASSERT_TYPE(op, a, i, LVAL_NUM);
   }
@@ -420,6 +420,10 @@ lval* builtin_mul(lenv* e, lval* a) {
 
 lval* builtin_div(lenv* e, lval* a) {
   return builtin_op(e, a, "/");
+}
+
+lval* builtin_exit(lenv* e, lval* a) {
+  exit(0);
 }
 
 lval* builtin_def(lenv* e, lval* a) {
@@ -469,6 +473,7 @@ void lenv_add_builtins(lenv* e) {
   lenv_add_builtin(e, "tail", builtin_tail);
   lenv_add_builtin(e, "eval", builtin_eval);
   lenv_add_builtin(e, "join", builtin_join);
+  lenv_add_builtin(e, "exit", builtin_exit);
   
   /* Mathematical Functions */
   lenv_add_builtin(e, "+", builtin_add);
